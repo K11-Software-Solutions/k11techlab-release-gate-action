@@ -1,0 +1,60 @@
+# Temporary: tests the action on real runners. Lives only on the test branch (Marketplace actions can't ship workflows).
+name: Test the action
+on: pull_request
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  block:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4             # shallow on purpose: the action must cope
+      - id: gate
+        uses: ./
+        with:
+          working-directory: test/block
+          base: none
+          fail-on: never
+          comment: ${{ matrix.os == 'ubuntu-latest' }}
+          upload: ${{ matrix.os == 'ubuntu-latest' }}
+      - name: Outputs are right
+        shell: bash
+        run: |
+          echo "verdict=${{ steps.gate.outputs.verdict }} blockers=${{ steps.gate.outputs.blockers }}"
+          test "${{ steps.gate.outputs.verdict }}" = block
+          test "${{ steps.gate.outputs.blockers }}" -ge 1
+          test -f "${{ steps.gate.outputs.decision-json }}"
+      - id: enforce
+        uses: ./
+        continue-on-error: true
+        with: { working-directory: test/block, base: none, fail-on: block, comment: "false", upload: "false" }
+      - name: fail-on block failed the step
+        shell: bash
+        run: test "${{ steps.enforce.outcome }}" = failure
+
+  ship:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: gate
+        uses: ./
+        with: { working-directory: test/ship, base: none, fail-on: conditions, comment: "false", upload: "false" }
+      - run: test "${{ steps.gate.outputs.verdict }}" = ship
+
+  change-triggered:
+    # the PR changes test/block/src/orders/consumers/...: with base auto, the gate must require integration evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: gate
+        uses: ./
+        with: { working-directory: test/block, fail-on: never, comment: "false", upload: "false" }
+      - name: The diff was used
+        run: |
+          python -c "import json,sys; d=json.load(open('${{ steps.gate.outputs.decision-json }}')); p=d.get('plan') or {}; print(p.get('needed')); sys.exit(0 if 'integration' in (p.get('needed') or []) else 1)"
