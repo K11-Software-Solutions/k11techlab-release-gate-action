@@ -11,6 +11,8 @@ this change needs: change a Kafka consumer and integration tests become required
 - uses: K11-Software-Solutions/k11techlab-release-gate-action@v1
 ```
 
+**Documentation:** [Usage guide](docs/usage.md) (setup, policy, scenarios, troubleshooting) · [Reference](docs/reference.md) (inputs, outputs, rules, files) · [Design and implementation](docs/design.md) (how it works and why)
+
 ## What you get on every pull request
 
 ```text
@@ -49,7 +51,7 @@ Recognised by content, wherever your policy says to look:
 | LLM red-team | [LLM Assure](https://github.com/K11-Software-Solutions/k11techlab-llm-assurance-toolkit) |
 | Any JUnit XML | pytest, Maven Surefire, Gradle, Jest, Playwright, … |
 
-You don't need all of them. With only JUnit files, it is already a policy-driven gate.
+You don't need all of them. With only JUnit files it is already a policy-driven gate: add a `.qa-mcp/release-policy.yaml` with `required: [junit]` (the built-in policy requires API functional tests). See the [quick start](docs/usage.md#quick-start-junit-only).
 
 ## Usage
 
@@ -76,13 +78,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0        # optional: the action fetches what it needs from a shallow checkout
-      - uses: actions/download-artifact@v4   # the reports your test jobs uploaded
+      - uses: actions/download-artifact@v4   # reports your test jobs uploaded from .qa-mcp/ (include-hidden-files: true)
+        with: { merge-multiple: true, path: .qa-mcp }
       - uses: K11-Software-Solutions/k11techlab-release-gate-action@v1
         with:
           fail-on: block
 ```
 
-More: [`examples/`](examples) (single job, tag releases with sign-off, monorepo).
+More: [`examples/`](examples) (single job, tag releases with sign-off, monorepo) and [bringing evidence from other jobs](docs/usage.md#bringing-evidence-from-other-jobs).
 
 ## Inputs
 

@@ -1,4 +1,5 @@
 # Tests and the gate in one job: the simplest setup.
+# Needs .qa-mcp/release-policy.yaml with `required: [junit]` (the built-in policy requires API functional tests).
 name: Release gate
 on: pull_request
 

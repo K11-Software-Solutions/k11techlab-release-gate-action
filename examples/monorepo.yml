@@ -15,9 +15,10 @@ jobs:
         service: [orders, payments]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4       # each service's reports, uploaded from its .qa-mcp/
         with:
-          path: services/${{ matrix.service }}
+          name: ${{ matrix.service }}-reports
+          path: services/${{ matrix.service }}/.qa-mcp
       - uses: K11-Software-Solutions/k11techlab-release-gate-action@v1
         with:
           working-directory: services/${{ matrix.service }}

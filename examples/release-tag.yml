@@ -15,7 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: actions/download-artifact@v4       # reports from your test workflow, or run the tests here
+      # Run your tests here, or download reports uploaded from .qa-mcp/ by earlier jobs of this workflow:
+      - uses: actions/download-artifact@v4
+        with: { merge-multiple: true, path: .qa-mcp }
       - id: gate
         uses: K11-Software-Solutions/k11techlab-release-gate-action@v1
         with:
