@@ -1,0 +1,65 @@
+# Temporary: tests the documented multi-job evidence pattern (docs/usage.md). Not for merge.
+name: Test evidence from other jobs
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  integration:                      # like a test job that ran k11-integration-qa-mcp
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p .qa-mcp/integration-report && cp test/fixtures/integration-report.json .qa-mcp/integration-report/
+      - uses: actions/upload-artifact@v4
+        with: { name: integration-reports, path: .qa-mcp/, include-hidden-files: true }
+
+  security:                         # like a test job that ran k11-api-security-qa-mcp
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p .qa-mcp/security-report && cp test/fixtures/security-report.json .qa-mcp/security-report/
+      - uses: actions/upload-artifact@v4
+        with: { name: security-reports, path: .qa-mcp/, include-hidden-files: true }
+
+  gate-documented:                  # the pattern in docs/usage.md
+    needs: [integration, security]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { pattern: "*-reports", merge-multiple: true, path: .qa-mcp }
+      - run: |
+          find .qa-mcp -type f | sort
+          printf 'required: [integration, security]\nmax_age_hours: 87600\n' > .qa-mcp/release-policy.yaml
+      - id: gate
+        uses: ./
+        with: { base: none, fail-on: never, comment: "false", upload: "false" }
+      - name: Both reports were read as evidence
+        run: |
+          python - <<'PY'
+          import json, sys
+          d = json.load(open("${{ steps.gate.outputs.decision-json }}"))
+          kinds = sorted(e["kind"] for e in d["evidence"])
+          rules = sorted({f["rule"] for f in d["findings"]})
+          print("evidence:", kinds, "| rules:", rules)
+          assert kinds == ["integration", "security"], kinds
+          assert "evidence.missing" not in rules, rules
+          assert "integration.failed" in rules and "security.critical" in rules, rules
+          PY
+
+  gate-pitfall:                     # what the docs warn about: a plain download
+    needs: [integration, security]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+      - run: |
+          find . -path ./.git -prune -o -name '*-report.json' -print | sort
+          mkdir -p .qa-mcp && printf 'required: [integration, security]\nmax_age_hours: 87600\n' > .qa-mcp/release-policy.yaml
+      - id: gate
+        uses: ./
+        with: { base: none, fail-on: never, comment: "false", upload: "false" }
+      - name: The default locations are not found
+        run: |
+          python -c "import json; d=json.load(open('${{ steps.gate.outputs.decision-json }}')); r={f['rule'] for f in d['findings']}; print(sorted(r)); assert 'evidence.missing' in r"
