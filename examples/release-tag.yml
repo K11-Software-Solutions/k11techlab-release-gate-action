@@ -1,0 +1,38 @@
+# On a version tag: decide on the release itself, and stop for a named person when the policy says so.
+name: Release
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      verdict: ${{ steps.gate.outputs.verdict }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/download-artifact@v4       # reports from your test workflow, or run the tests here
+      - id: gate
+        uses: K11-Software-Solutions/k11techlab-release-gate-action@v1
+        with:
+          base: origin/main                      # require the evidence everything since main triggers
+          fail-on: block                         # needs_human continues to the approval below
+
+  sign-off:
+    needs: gate
+    if: needs.gate.outputs.verdict == 'needs_human'
+    runs-on: ubuntu-latest
+    environment: release-approval                # add required reviewers to this environment
+    steps:
+      - run: echo "Signed off by a required reviewer"
+
+  publish:
+    needs: [gate, sign-off]
+    if: always() && needs.gate.result == 'success' && (needs.sign-off.result == 'success' || needs.sign-off.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "publish the release here"
