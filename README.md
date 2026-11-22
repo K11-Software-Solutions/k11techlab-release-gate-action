@@ -119,6 +119,8 @@ More: [`examples/`](examples) (single job, tag releases with sign-off, monorepo)
 
 ## The release policy
 
+> All K11 QA tools keep their settings, baselines and reports in `.qa-mcp/`. [What each file is for, and what to commit](https://github.com/K11-Software-Solutions/k11techlab-release-gate-mcp/blob/main/docs/qa-mcp-folder.md).
+
 `.qa-mcp/release-policy.yaml` says which evidence is required, how fresh it must be, who signs off, and what each
 finding means. Start with `pipx run k11-release-gate-mcp init`. The same evidence and policy always give the same
 verdict, so the decision holds up in an audit.
