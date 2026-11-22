@@ -13,6 +13,8 @@ this change needs: change a Kafka consumer and integration tests become required
 
 **Documentation:** [Usage guide](docs/usage.md) (setup, policy, scenarios, troubleshooting) · [Reference](docs/reference.md) (inputs, outputs, rules, files) · [Design and implementation](docs/design.md) (how it works and why)
 
+**See it live:** the [K11 Shop demo](https://github.com/K11-Software-Solutions/k11techlab-release-gate-demo) runs unit, API, contract, security and Kafka integration checks, then this action, on five open pull requests: one ships, three are blocked (an integration bug, a contract break, a security hole) and one needs a person's sign-off.
+
 ## What you get on every pull request
 
 ```text
